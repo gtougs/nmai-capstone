@@ -85,11 +85,20 @@ class BrainEncoder(ABC):
 
 
 class TribeEncoder(BrainEncoder):
-    """Meta's TRIBE v2 (CC-BY-NC-4.0). Needs a GPU; text input needs gated meta-llama/Llama-3.2-3B access."""
+    """Meta's TRIBE v2 (CC-BY-NC-4.0). Needs a GPU.
 
-    def __init__(self, repo_id: str = "facebook/tribev2", cache_folder: str = "./cache", device: str = "auto"):
+    Every modality uses the text extractor (speech in audio/video is transcribed to words), which defaults to
+    the gated ``meta-llama/Llama-3.2-3B``. ``text_model`` swaps in another repo. It must be the *same*
+    weights (e.g. an ungated mirror), because TRIBE's projection layers were trained on that model's features.
+    """
+    OFFICIAL_TEXT_MODEL = "meta-llama/Llama-3.2-3B"
+    TEXT_MODELS = {"Official (gated)": OFFICIAL_TEXT_MODEL, "Ungated mirror (unsloth)": "unsloth/Llama-3.2-3B"}
+
+    def __init__(self, text_model: str = OFFICIAL_TEXT_MODEL, repo_id: str = "facebook/tribev2",
+                 cache_folder: str = "./cache", device: str = "auto"):
         from tribev2 import TribeModel  # heavy import, deferred so the mock path stays light
-        self._model = TribeModel.from_pretrained(repo_id, cache_folder=cache_folder, device=device)
+        self._model = TribeModel.from_pretrained(repo_id, cache_folder=cache_folder, device=device,
+                                                 config_update={"data.text_feature.model_name": text_model})
 
     def predict(self, stimulus: Stimulus) -> BrainResponse:
         events = self._model.get_events_dataframe(**{f"{stimulus.modality.value}_path": str(stimulus.path)})
@@ -102,7 +111,7 @@ class TribeEncoder(BrainEncoder):
 class MockEncoder(BrainEncoder):
     """Deterministic, spatially smooth fake responses for GPU-free UI development. Not real science."""
 
-    def __init__(self, n_timesteps: int = 30, tr: float = 1.0):
+    def __init__(self, n_timesteps: int = 30, tr: float = 1.0, **_options):
         self.n_timesteps, self.tr = n_timesteps, tr
 
     def predict(self, stimulus: Stimulus) -> BrainResponse:
