@@ -1,0 +1,9 @@
+# GUI + analysis (enough to run the app with the Mock encoder on any machine)
+streamlit>=1.40
+plotly>=5.20
+nilearn>=0.11
+matplotlib
+pandas
+numpy
+# Real model (GPU machine / Colab only). Requires Python >= 3.11 and `uv` (WhisperX transcription runs via uvx):
+#   pip install uv "tribev2[plotting] @ git+https://github.com/facebookresearch/tribev2"
